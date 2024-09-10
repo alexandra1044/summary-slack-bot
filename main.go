@@ -6,8 +6,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/google/generative-ai-go/genai"
 	"github.com/joho/godotenv"
 	"github.com/shomali11/slacker"
+	"google.golang.org/api/option"
 )
 
 func printCommandEvents(analyticsChannel <-chan *slacker.CommandEvent) {
@@ -30,17 +32,35 @@ func main() {
 
 	slackBotToken := os.Getenv("SLACK_BOT_TOKEN")
 	slackAppToken := os.Getenv("SLACK_APP_TOKEN")
+	googleGeminiToken := os.Getenv("GOOGLE_API_KEY")
 
 	bot := slacker.NewClient(slackBotToken, slackAppToken)
 
 	go printCommandEvents(bot.CommandEvents())
 
-	bot.Command("summarize the last <number> messages", &slacker.CommandDefinition{
+	bot.Command("summarize the last <number> messages and return text", &slacker.CommandDefinition{
 		Description: "Uses Gemini AI to summarize the last X number of messages recieved",
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			messages := request.Param("number")
-			fmt.Print(messages)
-			response.Reply("gemini response here")
+			message_number := request.Param("number")
+			fmt.Print(message_number)
+
+			ctx := context.Background()
+			client, err := genai.NewClient(ctx, option.WithAPIKey(googleGeminiToken))
+			if err != nil {
+				log.Panic("Error when generating gemini client")
+			}
+			defer client.Close()
+
+			model := client.GenerativeModel("gemini-1.5-flash")
+
+			prompt := "summarize the last" + message_number + "messages"
+			gen_response, err := model.GenerateContent(ctx, genai.Text(prompt))
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			response.Reply(fmt.Sprintf(gen_response))
 		},
 	})
 
