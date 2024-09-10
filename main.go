@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -59,8 +60,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+			as_json, _ := json.MarshalIndent(gen_response, "", "    ")
 
-			response.Reply(fmt.Sprintf(gen_response))
+			response.Reply(string(as_json))
 		},
 	})
 

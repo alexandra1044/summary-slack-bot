@@ -9,7 +9,8 @@
 1. Clone the repository:
 ```
 https://github.com/alexandra1044/summary-slack-bot.git
-
+```
+```
 ls summary-slack-bot
 ```
 2. Download Dependencies
