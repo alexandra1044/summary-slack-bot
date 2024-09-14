@@ -66,9 +66,9 @@ func main() {
 
 	// remove null terminator
 	string_val := string(byte_val)
-	trimmed_val := strings.Replace(string_val, `\n`, "\n", -1)
+	trimmed_val := strings.Replace(string_val, `\n`, "", -1)
 
-	fmt.Print(trimmed_val)
+	//fmt.Print(trimmed_val)
 
 	printMessageToChat(trimmed_val, slackBotToken, slackChannelID)
 
