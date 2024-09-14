@@ -21,13 +21,18 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
+	// fetch all tokens from env file
 	slackBotToken := os.Getenv("SLACK_BOT_TOKEN")
 	googleGeminiToken := os.Getenv("GOOGLE_API_KEY")
-
 	slackChannelID := os.Getenv("SLACK_CHANNEL_ID")
 
 	api := slack.New(slackBotToken)
+
+	geminiSummary(googleGeminiToken, slackChannelID, slackBotToken, api)
+
+}
+
+func geminiSummary(googleGeminiToken string, slackChannelID string, slackBotToken string, api *slack.Client) {
 
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(googleGeminiToken))
@@ -67,8 +72,6 @@ func main() {
 	// remove null terminator
 	string_val := string(byte_val)
 	trimmed_val := strings.Replace(string_val, `\n`, "", -1)
-
-	//fmt.Print(trimmed_val)
 
 	printMessageToChat(trimmed_val, slackBotToken, slackChannelID)
 
