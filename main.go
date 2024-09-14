@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/joho/godotenv"
@@ -63,7 +64,13 @@ func main() {
 
 	byte_val := getResponse(gen_response)
 
-	printMessageToChat(string(byte_val), slackBotToken, slackChannelID)
+	// remove null terminator
+	string_val := string(byte_val)
+	trimmed_val := strings.Replace(string_val, `\n`, "\n", -1)
+
+	fmt.Print(trimmed_val)
+
+	printMessageToChat(trimmed_val, slackBotToken, slackChannelID)
 
 }
 

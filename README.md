@@ -3,6 +3,7 @@
 ## Features
 - Summarizes recent slack messages using Google Gemini AI.
 ## Tech Stack
+- go - language 
 
 ## Getting Started
 
