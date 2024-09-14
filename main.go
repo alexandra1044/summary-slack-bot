@@ -9,20 +9,10 @@ import (
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/joho/godotenv"
-	"github.com/shomali11/slacker"
+
+	"github.com/slack-go/slack"
 	"google.golang.org/api/option"
 )
-
-func printCommandEvents(analyticsChannel <-chan *slacker.CommandEvent) {
-	for event := range analyticsChannel {
-		fmt.Println("Command Events")
-		fmt.Println(event.Timestamp)
-		fmt.Println(event.Command)
-		fmt.Println(event.Parameters)
-		fmt.Println(event.Event)
-		fmt.Println()
-	}
-}
 
 func main() {
 
@@ -32,45 +22,81 @@ func main() {
 	}
 
 	slackBotToken := os.Getenv("SLACK_BOT_TOKEN")
-	slackAppToken := os.Getenv("SLACK_APP_TOKEN")
 	googleGeminiToken := os.Getenv("GOOGLE_API_KEY")
 
-	bot := slacker.NewClient(slackBotToken, slackAppToken)
+	slackChannelID := os.Getenv("SLACK_CHANNEL_ID")
 
-	go printCommandEvents(bot.CommandEvents())
+	api := slack.New(slackBotToken)
 
-	bot.Command("summarize the last <number> messages and return text", &slacker.CommandDefinition{
-		Description: "Uses Gemini AI to summarize the last X number of messages recieved",
-		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			message_number := request.Param("number")
-			fmt.Print(message_number)
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, option.WithAPIKey(googleGeminiToken))
+	if err != nil {
+		log.Panic("Error when generating gemini client")
+	}
+	defer client.Close()
 
-			ctx := context.Background()
-			client, err := genai.NewClient(ctx, option.WithAPIKey(googleGeminiToken))
-			if err != nil {
-				log.Panic("Error when generating gemini client")
-			}
-			defer client.Close()
+	model := client.GenerativeModel("gemini-1.5-flash")
 
-			model := client.GenerativeModel("gemini-1.5-flash")
+	// get appropriate amount of prior messages here
 
-			prompt := "summarize the last" + message_number + "messages"
-			gen_response, err := model.GenerateContent(ctx, genai.Text(prompt))
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: slackChannelID,
+	}
 
-			if err != nil {
-				log.Fatal(err)
-			}
-			as_json, _ := json.MarshalIndent(gen_response, "", "    ")
+	messages, err := api.GetConversationHistoryContext(context.Background(), &params)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+	var totalMessages string
+	for _, message := range messages.Messages {
+		//fmt.Printf(message.Text)
+		totalMessages = totalMessages + message.Text
+	}
 
-			response.Reply(string(as_json))
-		},
-	})
+	prompt := "summarize these messages in a short paragraph" + totalMessages
+	gen_response, err := model.GenerateContent(ctx, genai.Text(prompt))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	err = bot.Listen(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	byte_val := getResponse(gen_response)
+
+	printMessageToChat(string(byte_val), slackBotToken, slackChannelID)
+
+}
+
+func printMessageToChat(message string, token string, channelID string) {
+
+	api := slack.New(token)
+	attachment := slack.Attachment{
+		Pretext: "",
+		Text:    "",
+	}
+
+	channelID, timestamp, err := api.PostMessage(
+		channelID,
+		slack.MsgOptionText(message, false),
+		slack.MsgOptionAttachments(attachment),
+	)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+	fmt.Printf("Message successfully sent to channel %s at %s", channelID, timestamp)
+
+}
+
+func getResponse(resp *genai.GenerateContentResponse) []byte {
+	var new_json []byte
+
+	for _, cand := range resp.Candidates {
+		if cand.Content != nil {
+			for _, part := range cand.Content.Parts {
+				new_json, _ = json.MarshalIndent(part, "", "    ")
+			}
+		}
+	}
+	return new_json
 }

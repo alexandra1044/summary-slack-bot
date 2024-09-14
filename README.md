@@ -1,7 +1,7 @@
 # summary-slack-bot
 
 ## Features
-
+- Summarizes recent slack messages using Google Gemini AI.
 ## Tech Stack
 
 ## Getting Started
@@ -30,9 +30,9 @@ To run the slack-bot you need:
 ```
 touch .env
 
-echo "SLACK_BOT_TOKEN="<YOUR_TOKEN_HERE>"" > .env
+echo "SLACK_CHANNEL_ID="<YOUR_SLACK_CHANNEL_ID_HERE> > .env
 
-echo "SLACK_APP_TOKEN="<YOUR_TOKEN_HERE>"" > .env
+echo "SLACK_BOT_TOKEN="<YOUR_TOKEN_HERE>"" > .env
 
 echo "GOOGLE_API_KEY="<YOUR_TOKEN_HERE>"" > .env
 ```
